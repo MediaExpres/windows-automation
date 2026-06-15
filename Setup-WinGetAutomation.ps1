@@ -1,20 +1,14 @@
 # ==============================================================================
-# SCRIPT: Setup-WinGetAutomation.ps1 (USER CONTEXT FIX)
+# SCRIPT: Setup-WinGetAutomation.ps1 (LOGON TRIGGER FIX)
 # PURPOSE: Automatically creates a background WinGet updater script and 
-#          registers it to run 15 minutes after every system startup.
+#          registers it to run 15 minutes after you log in.
 # ==============================================================================
 
-# 1. Define the directory and paths for our automated payload
 $Folder = "C:\Automation"
 $ScriptPath = "$Folder\BackgroundUpdater.ps1"
 $TaskName = "Automated_WinGet_Updater"
 
-# Create the directory if it doesn't exist yet
-if (!(Test-Path $Folder)) {
-    New-Item -ItemType Directory -Path $Folder | Out-Null
-}
-
-# 2. Write the updating code block that will run in the background
+# 1. Write the updating payload
 $UpdaterCode = @"
 Start-Transcript -Path "$Folder\updater_log.txt" -Append
 Write-Host "Starting background WinGet update asset sequence..."
@@ -23,23 +17,21 @@ Write-Host "Sequence completed successfully."
 Stop-Transcript
 "@
 
-# Save the code block into our script file
 Set-Content -Path $ScriptPath -Value $UpdaterCode
 
-# 3. Define the Task Scheduler Parameters via PowerShell Cmdlets
-$Trigger = New-ScheduledTaskTrigger -AtStartup
+# 2. Define the new trigger: At User Logon
+$Trigger = New-ScheduledTaskTrigger -AtLogOn
 $Trigger.Delay = "PT15M"
 
 $Action = New-ScheduledTaskAction -Execute "PowerShell.exe" -Argument "-WindowStyle Hidden -NoProfile -ExecutionPolicy Bypass -File `"$ScriptPath`""
 
-# --- THE FIX IS HERE ---
-# Dynamically grab your current Windows username (e.g., DELLCODE\mihai)
 $CurrentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
-
-# Run as YOU, only when logged in, but with the Highest (Admin) privileges
 $Principal = New-ScheduledTaskPrincipal -UserId $CurrentUser -LogonType Interactive -RunLevel Highest
 
-# 4. Register the new task into the operating system
-Register-ScheduledTask -TaskName $TaskName -Trigger $Trigger -Action $Action -Principal $Principal -Force | Out-Null
+# Optional: Force the Task Scheduler UI to display modern Windows compatibility
+$Settings = New-ScheduledTaskSettingsSet -Compatibility Win8 
 
-Write-Host "Success! The task has been updated to run under your profile: $CurrentUser" -ForegroundColor Green
+# 3. Register the task
+Register-ScheduledTask -TaskName $TaskName -Trigger $Trigger -Action $Action -Principal $Principal -Settings $Settings -Force | Out-Null
+
+Write-Host "Success! The task trigger is now set to 15 minutes after you Log In." -ForegroundColor Green
