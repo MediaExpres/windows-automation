@@ -33,14 +33,18 @@ Set-Content -Path $ScriptPath -Value $UpdaterCode
 $Trigger = New-ScheduledTaskTrigger -AtLogOn
 $Trigger.Delay = "PT15M"
 
-$Action = New-ScheduledTaskAction -Execute "PowerShell.exe" -Argument "-WindowStyle Hidden -NoProfile -ExecutionPolicy Bypass -File `"$ScriptPath`""
-
 $CurrentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
-$Principal = New-ScheduledTaskPrincipal -UserId $CurrentUser -LogonType Interactive -RunLevel Highest
 
+$Action = New-ScheduledTaskAction -Execute "PowerShell.exe" -Argument "-WindowStyle Hidden -NoProfile -ExecutionPolicy Bypass -File `"$ScriptPath`""
+$Principal = New-ScheduledTaskPrincipal -UserId $CurrentUser -LogonType Interactive -RunLevel Highest
 $Settings = New-ScheduledTaskSettingsSet -Compatibility Win8
 
 # 3. Register the task
 Register-ScheduledTask -TaskName $TaskName -Trigger $Trigger -Action $Action -Principal $Principal -Settings $Settings -Force | Out-Null
 
+# 4. Security Hardening: Lock down the folder to prevent Script Hijacking
+# *S-1-5-32-544 = Administrators Group | *S-1-5-18 = Local SYSTEM
+icacls $Folder /inheritance:r /grant "*S-1-5-32-544:(OI)(CI)F" /grant "*S-1-5-18:(OI)(CI)F" /grant "$CurrentUser:(OI)(CI)RX" /T /C /Q | Out-Null
+
 Write-Host "Success! The code generated '$ScriptPath' with auto-trimming logs, triggered 15 mins after Login." -ForegroundColor Green
+Write-Host "Security Applied: $Folder is now protected against unauthorized modification." -ForegroundColor Cyan
