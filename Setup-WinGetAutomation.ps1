@@ -44,7 +44,7 @@ Register-ScheduledTask -TaskName $TaskName -Trigger $Trigger -Action $Action -Pr
 
 # 4. Security Hardening: Lock down the folder to prevent Script Hijacking
 # *S-1-5-32-544 = Administrators Group | *S-1-5-18 = Local SYSTEM
-icacls $Folder /inheritance:r /grant "*S-1-5-32-544:(OI)(CI)F" /grant "*S-1-5-18:(OI)(CI)F" /grant "$CurrentUser:(OI)(CI)RX" /T /C /Q | Out-Null
+icacls $Folder /inheritance:r /grant "*S-1-5-32-544:(OI)(CI)F" /grant "*S-1-5-18:(OI)(CI)F" /grant "${CurrentUser}:(OI)(CI)RX" /T /C /Q | Out-Null
 
 Write-Host "Success! The code generated '$ScriptPath' with auto-trimming logs, triggered 15 mins after Login." -ForegroundColor Green
 Write-Host "Security Applied: $Folder is now protected against unauthorized modification." -ForegroundColor Cyan
