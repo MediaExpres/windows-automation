@@ -13,6 +13,7 @@ Instead of manually checking for updates or relying on heavy third-party softwar
 * **Silent Execution:** Runs completely hidden in the background without popping up annoying terminal windows.
 * **Auto-Trimming Logs:** Automatically monitors its own log file. If the log exceeds 2 MB, it automatically trims old entries, keeping only the 500 most recent lines to permanently prevent file bloat.
 * **Secure Context:** Runs locally under your own specific Windows user profile with the necessary administrative privileges.
+* **Anti-Hijacking Security:** Automatically locks down the installation folder using ACLs, preventing malicious background processes from modifying the updater payload.
 
 ## 🚀 Installation & Setup
 
@@ -25,6 +26,7 @@ Because Windows strictly limits running downloaded script files by default, the 
    * Create an automation directory at `C:\Automation`.
    * Generate the background updater payload (`BackgroundUpdater.ps1`).
    * Register a new Scheduled Task named `Automated_WinGet_Updater`.
+   * Apply strict Read-Only security permissions to the folder to prevent tampering.
 
 *That's it! You can now close the PowerShell window.*
 
@@ -35,9 +37,9 @@ Once installed, the setup code creates a Windows Scheduled Task with the followi
 * **Action:** Launches `PowerShell.exe` with a `-WindowStyle Hidden` argument.
 * **Security:** Runs dynamically as the current interactive user with `Highest` (Administrator) privileges to ensure software can be installed cleanly under your profile.
 
-When the background payload runs, it first performs a mathematical check on `updater_log.txt`. If the file is larger than 2 MB, it trims the file to save hard drive space. It then runs the following WinGet command to safely update all packages:
+To prevent Script Hijacking, the setup script uses `icacls` to strip inherited permissions from `C:\Automation`. It grants the standard user Read/Execute rights while reserving Full Control strictly for the Administrators group and the `SYSTEM` account.
 
-The payload script uses the following WinGet command to safely update all packages, accepting standard agreements automatically and suppressing installer popups:
+When the background payload runs, it first performs a mathematical check on `updater_log.txt`. If the file is larger than 2 MB, it trims the file to save hard drive space. It then runs the following WinGet command (using the `--silent` flag to prevent installer freezes) to safely update all packages:
 
 ```powershell
 winget upgrade --all --include-unknown --silent --accept-package-agreements --accept-source-agreements
