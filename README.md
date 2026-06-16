@@ -9,8 +9,8 @@ Instead of manually checking for updates or relying on heavy third-party softwar
 * **Set It and Forget It:** Automatically upgrades all supported applications with a single setup.
 * **Non-Intrusive:** Uses a 15-minute delay after logon so it doesn't slow down your computer while it's booting up.
 * **Silent Execution:** Runs completely hidden in the background without popping up annoying terminal windows.
+* **Auto-Trimming Logs:** Automatically monitors its own log file. If the log exceeds 2MB, it automatically trims old entries, keeping only the 500 most recent lines to permanently prevent file bloat.
 * **Secure Context:** Runs locally under your own specific Windows user profile with the necessary administrative privileges.
-* **Transparent Logging:** Generates a clean text log of every update sequence so you can verify what changed.
 
 ## 🚀 Installation & Setup
 
@@ -33,7 +33,7 @@ Once installed, the setup code creates a Windows Scheduled Task with the followi
 * **Action:** Launches `PowerShell.exe` with a `-WindowStyle Hidden` argument.
 * **Security:** Runs dynamically as the current interactive user with `Highest` (Administrator) privileges to ensure software can be installed cleanly under your profile.
 
-The payload script uses the following WinGet command to safely update all packages, accepting standard agreements automatically:
+When the background payload runs, it first performs a mathematical check on `updater_log.txt`. If the file is larger than 2MB, it trims the file to save hard drive space. It then runs the following WinGet command to safely update all packages:
 
 ```powershell
 winget upgrade --all --include-unknown --accept-package-agreements --accept-source-agreements
