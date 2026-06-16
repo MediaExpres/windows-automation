@@ -36,19 +36,24 @@ try {
     Write-Section "Running elevated as $CurrentUser." 'Gray'
 
     # -------------------------------------------------------------------
-    # 1. Prepare the folder and lock it down BEFORE writing anything to it
+    # 1. Force clear any existing automation folder to ensure a fresh slate
     # -------------------------------------------------------------------
     if (Test-Path $Folder) {
         $existing = Get-Item $Folder -Force
         if ($existing.Attributes -band [IO.FileAttributes]::ReparsePoint) {
             throw "$Folder is a reparse point / junction / symlink. Refusing to reuse it."
         }
+        Write-Section "Existing deployment detected. Resetting ACLs and force-deleting $Folder..." 'Yellow'
+        # Reset permissions to default inherited rules to bypass prior lockdowns
+        & icacls $Folder /reset /T /C /Q | Out-Null
+        # Force remove the entire folder and its contents cleanly
+        Remove-Item -Path $Folder -Recurse -Force
     }
-    else {
-        New-Item -ItemType Directory -Path $Folder | Out-Null
-    }
+    
+    # Create the folder fresh
+    New-Item -ItemType Directory -Path $Folder | Out-Null
 
-    # Lock it down immediately
+    # Lock it down immediately before writing any files
     $icaclsArgs = @(
         $Folder, '/inheritance:r',
         '/grant', "*S-1-5-32-544:(OI)(CI)F",
@@ -112,9 +117,6 @@ finally {
     Stop-Transcript | Out-Null
 }
 "@
-
-    # Force delete the old locked file if it exists to allow overwriting
-    if (Test-Path $ScriptPath) { Remove-Item -Path $ScriptPath -Force }
 
     Set-Content -Path $ScriptPath -Value $UpdaterCode -Encoding UTF8 -Force
     Write-Section "Payload written to $ScriptPath." 'Gray'
