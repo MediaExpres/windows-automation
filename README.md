@@ -37,6 +37,7 @@ The payload script uses the following WinGet command to safely update all packag
 ```powershell
 winget upgrade --all --include-unknown --accept-package-agreements --accept-source-agreements
 
+
 📝 Logs and Verification
 You can check the history of your updates at any time by opening the generated log file:
 C:\Automation\updater_log.txt
