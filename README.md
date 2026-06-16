@@ -36,7 +36,7 @@ Once installed, the setup code creates a Windows Scheduled Task with the followi
 The payload script uses the following WinGet command to safely update all packages, accepting standard agreements automatically:
 ```powershell
 winget upgrade --all --include-unknown --accept-package-agreements --accept-source-agreements
-
+```powershell
 
 📝 Logs and Verification
 You can check the history of your updates at any time by opening the generated log file:
