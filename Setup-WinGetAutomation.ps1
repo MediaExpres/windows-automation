@@ -5,7 +5,7 @@
 # ==============================================================================
 
 $Folder = "C:\Automation"
-$ScriptPath = "$Folder\BackgroundUpdater.ps1"
+$ScriptPath = "$Folder\Setup-WinGetAutomation.ps1"
 $TaskName = "Automated_WinGet_Updater"
 
 # 1. Write the updating payload
