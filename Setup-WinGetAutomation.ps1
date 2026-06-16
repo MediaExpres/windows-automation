@@ -1,12 +1,17 @@
 # ==============================================================================
-# SCRIPT: Setup-WinGetAutomation.ps1 (LOGON TRIGGER FIX)
+# SCRIPT: Setup-WinGetAutomation.ps1 (FINAL BULLETPROOF VERSION)
 # PURPOSE: Automatically creates a background WinGet updater script and 
 #          registers it to run 15 minutes after you log in.
 # ==============================================================================
 
 $Folder = "C:\Automation"
-$ScriptPath = "$Folder\Setup-WinGetAutomation.ps1"
+$ScriptPath = "$Folder\BackgroundUpdater.ps1"
 $TaskName = "Automated_WinGet_Updater"
+
+# CRITICAL FIX: Ensure the target directory actually exists on new computers!
+if (!(Test-Path $Folder)) {
+    New-Item -ItemType Directory -Path $Folder | Out-Null
+}
 
 # 1. Write the updating payload
 $UpdaterCode = @"
@@ -29,9 +34,9 @@ $CurrentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
 $Principal = New-ScheduledTaskPrincipal -UserId $CurrentUser -LogonType Interactive -RunLevel Highest
 
 # Optional: Force the Task Scheduler UI to display modern Windows compatibility
-$Settings = New-ScheduledTaskSettingsSet -Compatibility Win8 
+$Settings = New-ScheduledTaskSettingsSet -Compatibility Win8
 
 # 3. Register the task
 Register-ScheduledTask -TaskName $TaskName -Trigger $Trigger -Action $Action -Principal $Principal -Settings $Settings -Force | Out-Null
 
-Write-Host "Success! The task trigger is now set to 15 minutes after you Log In." -ForegroundColor Green
+Write-Host "Success! The code generated '$ScriptPath' and the task trigger is now set to 15 minutes after you Log In." -ForegroundColor Green
