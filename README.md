@@ -26,6 +26,7 @@ Because Windows strictly limits running downloaded script files by default, the 
 
 *That's it! You can now close the PowerShell window.*
 
+
 ## 🛠️ How It Works
 
 Once installed, the setup code creates a Windows Scheduled Task with the following parameters:
@@ -36,21 +37,17 @@ Once installed, the setup code creates a Windows Scheduled Task with the followi
 The payload script uses the following WinGet command to safely update all packages, accepting standard agreements automatically:
 ```powershell
 winget upgrade --all --include-unknown --accept-package-agreements --accept-source-agreements
-```powershell
 
-📝 Logs and Verification
+## 📝 Logs and Verification
 You can check the history of your updates at any time by opening the generated log file:
-C:\Automation\updater_log.txt
+'C:\Automation\updater_log.txt'
 
-If you want to trigger an update outside of the normal logon schedule manually:
+If you want to manually trigger an update outside of the normal logon schedule:
 
 Open Task Scheduler.
-
 Locate Automated_WinGet_Updater in the Task Scheduler Library.
-
 Right-click and select Run.
 
-⚠️ Prerequisites
+## ⚠️ Prerequisites
 Windows 10 or Windows 11.
-
-WinGet is installed (Included by default on modern Windows builds via the App Installer package).
+WinGet installed (Included by default on modern Windows builds via the App Installer package).
