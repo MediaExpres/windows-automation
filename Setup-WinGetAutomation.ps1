@@ -41,7 +41,7 @@ try {
     if (Test-Path $Folder) {
         $existing = Get-Item $Folder -Force
         if ($existing.Attributes -band [IO.FileAttributes]::ReparsePoint) {
-            throw "$Folder is a reparse point / junction / symlink, not a plain directory. Refusing to reuse it - remove it manually and re-run."
+            throw "$Folder is a reparse point / junction / symlink. Refusing to reuse it."
         }
     }
     else {
@@ -61,7 +61,7 @@ try {
         throw "icacls failed to lock down $Folder (exit code $LASTEXITCODE): $icaclsOutput"
     }
 
-    # Verify ACL using proper SID Translation (Fixing Claude's Bug)
+    # Verify ACL using proper SID Translation
     $acl = Get-Acl $Folder
     if (-not $acl.AreAccessRulesProtected) {
         throw "$Folder still inherits parent permissions after icacls /inheritance:r - aborting."
@@ -112,6 +112,9 @@ finally {
     Stop-Transcript | Out-Null
 }
 "@
+
+    # Force delete the old locked file if it exists to allow overwriting
+    if (Test-Path $ScriptPath) { Remove-Item -Path $ScriptPath -Force }
 
     Set-Content -Path $ScriptPath -Value $UpdaterCode -Encoding UTF8 -Force
     Write-Section "Payload written to $ScriptPath." 'Gray'
