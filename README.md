@@ -39,15 +39,16 @@ The payload script uses the following WinGet command to safely update all packag
 winget upgrade --all --include-unknown --accept-package-agreements --accept-source-agreements
 
 ## 📝 Logs and Verification
-You can check the history of your updates at any time by opening the generated log file:
-'C:\Automation\updater_log.txt'
+
+You can check the history of your updates at any time by opening the generated log file: `C:\Automation\updater_log.txt`
 
 If you want to manually trigger an update outside of the normal logon schedule:
 
-Open Task Scheduler.
-Locate Automated_WinGet_Updater in the Task Scheduler Library.
-Right-click and select Run.
+1. Open **Task Scheduler**.
+2. Locate `Automated_WinGet_Updater` in the Task Scheduler Library.
+3. Right-click and select **Run**.
 
 ## ⚠️ Prerequisites
-Windows 10 or Windows 11.
-WinGet installed (Included by default on modern Windows builds via the App Installer package).
+
+* Windows 10 or Windows 11.
+* [WinGet](https://learn.microsoft.com/en-us/windows/package-manager/winget/) installed (Included by default on modern Windows builds via the App Installer package).
