@@ -26,7 +26,6 @@ Because Windows strictly limits running downloaded script files by default, the 
 
 *That's it! You can now close the PowerShell window.*
 
-
 ## 🛠️ How It Works
 
 Once installed, the setup code creates a Windows Scheduled Task with the following parameters:
@@ -35,6 +34,7 @@ Once installed, the setup code creates a Windows Scheduled Task with the followi
 * **Security:** Runs dynamically as the current interactive user with `Highest` (Administrator) privileges to ensure software can be installed cleanly under your profile.
 
 The payload script uses the following WinGet command to safely update all packages, accepting standard agreements automatically:
+
 ```powershell
 winget upgrade --all --include-unknown --accept-package-agreements --accept-source-agreements
 ```
