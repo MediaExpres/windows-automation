@@ -37,8 +37,10 @@ Once installed, the setup code creates a Windows Scheduled Task with the followi
 
 When the background payload runs, it first performs a mathematical check on `updater_log.txt`. If the file is larger than 2 MB, it trims the file to save hard drive space. It then runs the following WinGet command to safely update all packages:
 
+The payload script uses the following WinGet command to safely update all packages, accepting standard agreements automatically and suppressing installer popups:
+
 ```powershell
-winget upgrade --all --include-unknown --accept-package-agreements --accept-source-agreements
+winget upgrade --all --include-unknown --silent --accept-package-agreements --accept-source-agreements
 ```
 
 ## 📝 Logs and Verification
