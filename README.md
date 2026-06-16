@@ -1,8 +1,8 @@
 # Automated WinGet Background Updater
 
-A lightweight, fully automated PowerShell script that keeps your Windows applications up to date using the native Windows Package Manager (WinGet). 
+A lightweight, highly secure, and fully automated PowerShell script that keeps your Windows applications up to date using the native Windows Package Manager (WinGet). 
 
-Instead of manually checking for updates or relying on heavy third-party software, this script integrates directly with Windows Task Scheduler to run silently in the background 15 minutes after you log in to your computer.
+Instead of manually checking for updates or relying on heavy third-party software that drains system resources, this script integrates directly with Windows Task Scheduler to run silently in the background 15 minutes after you log in to your computer.
 
 *🤖 **Acknowledgments:** This automation script and documentation were developed iteratively with Google Gemini as an AI pair-programming partner.*
 
@@ -12,8 +12,7 @@ Instead of manually checking for updates or relying on heavy third-party softwar
 * **Non-Intrusive:** Uses a 15-minute delay after logon so it doesn't slow down your computer while it's booting up.
 * **Silent Execution:** Runs completely hidden in the background without popping up annoying terminal windows.
 * **Auto-Trimming Logs:** Automatically monitors its own log file. If the log exceeds 2 MB, it automatically trims old entries, keeping only the 500 most recent lines to permanently prevent file bloat.
-* **Secure Context:** Runs locally under your own specific Windows user profile with the necessary administrative privileges.
-* **Anti-Hijacking Security:** Automatically locks down the installation folder using ACLs, preventing malicious background processes from modifying the updater payload.
+* **Enterprise Security Hardening:** Actively defends against script hijacking via strict ACL folder lockdowns, automated permission teardown and resets on upgrades, SHA-256 cryptographic hash pinning, and absolute executable pathing.
 
 ## 🚀 Installation & Setup
 
@@ -23,10 +22,12 @@ Because Windows strictly limits running downloaded script files by default, the 
 2. Open the `Setup-WinGetAutomation.ps1` file from this repository and **copy all of the code**.
 3. Go back to your Administrator PowerShell window, **paste the code**, and press **Enter**.
 4. The setup sequence will automatically:
-   * Create an automation directory at `C:\Automation`.
+   * Verify an elevated context.
+   * Reset prior ACL dependencies and force-delete existing versions of `C:\Automation` to clear modification conflicts.
+   * Create and immediately lock down the `C:\Automation` directory to prevent TOCTOU race conditions.
    * Generate the background updater payload (`BackgroundUpdater.ps1`).
+   * Calculate and pin the SHA-256 integrity hash of the script to `HKLM`.
    * Register a new Scheduled Task named `Automated_WinGet_Updater`.
-   * Apply strict Read-Only security permissions to the folder to prevent tampering.
 
 *That's it! You can now close the PowerShell window.*
 
@@ -35,14 +36,15 @@ Because Windows strictly limits running downloaded script files by default, the 
 Once installed, the setup code creates a Windows Scheduled Task with the following parameters:
 * **Trigger:** At User Logon with a `PT15M` (15-minute) delay.
 * **Action:** Launches `PowerShell.exe` with a `-WindowStyle Hidden` argument.
-* **Security:** Runs dynamically as the current interactive user with `Highest` (Administrator) privileges to ensure software can be installed cleanly under your profile.
+* **Security Context:** Runs dynamically as the current interactive user with `Highest` (Administrator) privileges.
 
-To prevent Script Hijacking, the setup script uses `icacls` to strip inherited permissions from `C:\Automation`. It grants the standard user Read/Execute rights while reserving Full Control strictly for the Administrators group and the `SYSTEM` account.
+### Security Architecture
+To prevent Script Hijacking, the script implements cryptographic verification. Before the Scheduled Task ever runs the WinGet payload, it computes the live SHA-256 hash of `BackgroundUpdater.ps1` and compares it to the trusted hash pinned in the Windows Registry during installation. If malicious software alters the file, the hash mismatch causes the task to immediately abort.
 
-When the background payload runs, it first performs a mathematical check on `updater_log.txt`. If the file is larger than 2 MB, it trims the file to save hard drive space. It then runs the following WinGet command (using the `--silent` flag to prevent installer freezes) to safely update all packages:
+When the verified background payload runs, it mathematically checks `updater_log.txt` to trim old entries, then runs the following WinGet command (using absolute paths and `--silent` flags) to safely update all packages:
 
 ```powershell
-winget upgrade --all --include-unknown --silent --accept-package-agreements --accept-source-agreements
+& $env:LOCALAPPDATA\Microsoft\WindowsApps\winget.exe upgrade --all --include-unknown --silent --accept-package-agreements --accept-source-agreements
 ```
 
 ## 📝 Logs and Verification
