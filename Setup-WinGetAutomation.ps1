@@ -1,5 +1,5 @@
 # ==============================================================================
-# SCRIPT: Setup-WinGetAutomation.ps1 (LOG MANAGEMENT UPGRADE)
+# SCRIPT: Setup-WinGetAutomation.ps1 
 # PURPOSE: Automatically creates a background WinGet updater script and 
 #          registers it to run 15 minutes after you log in.
 # ==============================================================================
@@ -15,17 +15,14 @@ if (!(Test-Path $Folder)) {
 
 # 1. Write the updating payload with Auto-Trimming Logic
 $UpdaterCode = @"
-# --- LOG MANAGEMENT ---
 # Check if the log file exists and is larger than 2MB (2097152 bytes)
 if ((Test-Path "$Folder\updater_log.txt") -and ((Get-Item "$Folder\updater_log.txt").Length -gt 2097152)) {
-    # Keep only the last 500 lines to save space and overwrite the old bloated file
     (Get-Content "$Folder\updater_log.txt" -Tail 500) | Set-Content "$Folder\updater_log.txt"
 }
 
-# --- UPDATE SEQUENCE ---
 Start-Transcript -Path "$Folder\updater_log.txt" -Append
 Write-Host "Starting background WinGet update asset sequence..."
-winget upgrade --all --include-unknown --accept-package-agreements --accept-source-agreements
+winget upgrade --all --include-unknown --silent --accept-package-agreements --accept-source-agreements
 Write-Host "Sequence completed successfully."
 Stop-Transcript
 "@
@@ -41,7 +38,6 @@ $Action = New-ScheduledTaskAction -Execute "PowerShell.exe" -Argument "-WindowSt
 $CurrentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
 $Principal = New-ScheduledTaskPrincipal -UserId $CurrentUser -LogonType Interactive -RunLevel Highest
 
-# Optional: Force the Task Scheduler UI to display modern Windows compatibility
 $Settings = New-ScheduledTaskSettingsSet -Compatibility Win8
 
 # 3. Register the task
