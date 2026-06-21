@@ -83,7 +83,7 @@ try {
     Write-Section "Folder $Folder created and locked down (verified) before any payload was written." 'Green'
 
     # -------------------------------------------------------------------
-    # 2. Write the updater payload
+    # 2. Write the updater payload (PATCHED for PS 5.1 NativeCommandError)
     # -------------------------------------------------------------------
     $UpdaterCode = @"
 `$ErrorActionPreference = 'Stop'
@@ -102,8 +102,10 @@ try {
 
     if (-not (Test-Path `$WinGetPath)) { throw "winget.exe could not be found at secure path." }
 
-    & `$WinGetPath upgrade --all --include-unknown --silent --accept-package-agreements --accept-source-agreements
-    `$wingetExit = `$LASTEXITCODE
+    # Isolate WinGet in its own process to prevent PS 5.1 from crashing on progress bar outputs
+    `$proc = Start-Process -FilePath `$WinGetPath -ArgumentList "upgrade --all --include-unknown --silent --accept-package-agreements --accept-source-agreements" -Wait -NoNewWindow -PassThru
+    `$wingetExit = `$proc.ExitCode
+    
     if (`$wingetExit -eq 0) {
         Write-Host "Sequence completed successfully (exit code 0)."
     } else {
