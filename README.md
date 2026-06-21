@@ -43,9 +43,7 @@ To prevent Script Hijacking, the script implements cryptographic verification. B
 
 When the verified background payload runs, it mathematically checks `updater_log.txt` to trim old entries, then runs the following WinGet command (using absolute paths and `--silent` flags) to safely update all packages:
 
-```powershell
-& $env:LOCALAPPDATA\Microsoft\WindowsApps\winget.exe upgrade --all --include-unknown --silent --accept-package-agreements --accept-source-agreements
-```
+    $proc = Start-Process -FilePath $WinGetPath -ArgumentList "upgrade --all --include-unknown --silent --accept-package-agreements --accept-source-agreements" -Wait -NoNewWindow -PassThru
 
 ## 📝 Logs and Verification
 
