@@ -83,7 +83,7 @@ try {
     Write-Section "Folder $Folder created and locked down (verified) before any payload was written." 'Green'
 
     # -------------------------------------------------------------------
-    # 2. Write the updater payload (PATCHED for PS 5.1 NativeCommandError)
+    # 2. Write the updater payload
     # -------------------------------------------------------------------
     $UpdaterCode = @"
 `$ErrorActionPreference = 'Stop'
@@ -163,6 +163,7 @@ catch {
     # -------------------------------------------------------------------
     # 5. Register the scheduled task
     # -------------------------------------------------------------------
+    # Set to Any User logon to ensure the trigger catches reliably
     $Trigger = New-ScheduledTaskTrigger -AtLogOn
     $Trigger.Delay = "PT15M"
 
@@ -170,6 +171,8 @@ catch {
         -Argument "-NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy RemoteSigned -EncodedCommand $EncodedCommand"
 
     $Principal = New-ScheduledTaskPrincipal -UserId $CurrentUser -LogonType Interactive -RunLevel Highest
+    
+    # PATCHED: Disable laptop battery restrictions so the task runs even when unplugged
     $Settings  = New-ScheduledTaskSettingsSet -Compatibility Win8 -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
 
     $existingTask = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
