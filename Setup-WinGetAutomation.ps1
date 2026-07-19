@@ -2,6 +2,7 @@
 # SCRIPT: Setup-WinGetAutomation.ps1 
 # PURPOSE: Automatically creates a background WinGet updater script and 
 #          registers it to run 15 minutes after you log in.
+# VERSION: 1.1.0 (Includes Regex Output Parsing and Native Toast Alerts)
 # ==============================================================================
 
 <#
@@ -83,7 +84,7 @@ try {
     Write-Section "Folder $Folder created and locked down (verified) before any payload was written." 'Green'
 
     # -------------------------------------------------------------------
-    # 2. Write the updater payload
+    # 2. Write the updater payload (v1.1 with Parsing and Notifications)
     # -------------------------------------------------------------------
     $UpdaterCode = @"
 `$ErrorActionPreference = 'Stop'
@@ -102,14 +103,47 @@ try {
 
     if (-not (Test-Path `$WinGetPath)) { throw "winget.exe could not be found at secure path." }
 
-    # Isolate WinGet in its own process to prevent PS 5.1 from crashing on progress bar outputs
-    `$proc = Start-Process -FilePath `$WinGetPath -ArgumentList "upgrade --all --include-unknown --silent --accept-package-agreements --accept-source-agreements" -Wait -NoNewWindow -PassThru
-    `$wingetExit = `$proc.ExitCode
+    # Execute WinGet natively. --disable-interactivity prevents progress bars, keeping PS 5.1 stable
+    `$wingetOutput = & `$WinGetPath upgrade --all --include-unknown --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
+    `$exitCode = `$LASTEXITCODE
     
-    if (`$wingetExit -eq 0) {
-        Write-Host "Sequence completed successfully (exit code 0)."
+    # Ignore "No updates available"
+    if (`$exitCode -eq -1978334967) {
+        Write-Host "WinGet completed: No updates were found."
     } else {
-        Write-Host "WARNING: winget exited with code `$wingetExit."
+        # Extract package IDs using structural Regex (ignores system language)
+        `$attemptedApps = @()
+        foreach (`$line in `$wingetOutput) {
+            if (`$line -match '\(\d+/\d+\).*?\[([\w\.\-]+)\]') {
+                `$attemptedApps += `$matches[1]
+            }
+        }
+
+        `$appList = if (`$attemptedApps.Count -gt 0) { `$attemptedApps -join ", " } else { "Unknown Packages" }
+
+        # Load native Windows UI namespaces
+        [Windows.UI.Notifications.ToastNotificationManager, Windows.UI, ContentType = WindowsRuntime] | Out-Null
+        [Windows.Data.Xml.Dom.XmlDocument, Windows.Data.Xml.Dom.XmlDocument, ContentType = WindowsRuntime] | Out-Null
+
+        # Define notification content
+        if (`$exitCode -eq 0) {
+            `$toastTitle = "✅ WinGet Updates Installed"
+            `$toastBody  = "Successfully updated: `$appList"
+        } else {
+            `$toastTitle = "⚠️ WinGet Update Failed"
+            `$toastBody  = "Failed during batch: `$appList`nExit Code: `$exitCode"
+        }
+
+        # Build XML payload safely as a single string to avoid here-string nesting errors
+        `$toastXml = "<toast><visual><binding template='ToastGeneric'><text>`$toastTitle</text><text>`$toastBody</text></binding></visual></toast>" 
+
+        # Generate and display the notification
+        `$xml = New-Object Windows.Data.Xml.Dom.XmlDocument
+        `$xml.LoadXml(`$toastXml)
+        `$toast = New-Object Windows.UI.Notifications.ToastNotification(`$xml)
+        [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier("PowerShell").Show(`$toast)
+
+        Write-Host `$toastBody
     }
 }
 catch {
@@ -163,7 +197,6 @@ catch {
     # -------------------------------------------------------------------
     # 5. Register the scheduled task
     # -------------------------------------------------------------------
-    # Set to Any User logon to ensure the trigger catches reliably
     $Trigger = New-ScheduledTaskTrigger -AtLogOn
     $Trigger.Delay = "PT15M"
 
@@ -172,7 +205,6 @@ catch {
 
     $Principal = New-ScheduledTaskPrincipal -UserId $CurrentUser -LogonType Interactive -RunLevel Highest
     
-    # PATCHED: Disable laptop battery restrictions so the task runs even when unplugged
     $Settings  = New-ScheduledTaskSettingsSet -Compatibility Win8 -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
 
     $existingTask = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
@@ -199,10 +231,14 @@ catch {
         Write-Section "FAILED: pinned hash does not match the file currently on disk." 'Red'
         $allGood = $false
     }
+    if (-not $verifyAcl.AreAccessRulesProtected) {
+        Write-Section "FAILED: folder ACL lost its protected inheritance lock." 'Red'
+        $allGood = $false
+    }
 
     if ($allGood) {
         Write-Host ""
-        Write-Host "Success: '$ScriptPath' created with auto-trimming logs and a hash-verifying launcher," -ForegroundColor Green
+        Write-Host "Success: '$ScriptPath' created with v1.1 output parsing and native alerts," -ForegroundColor Green
         Write-Host "         triggered 15 minutes after logon as task '$TaskName'." -ForegroundColor Green
         Write-Host "Hardening applied: ACL locked before write, integrity hash pinned in HKLM," -ForegroundColor Cyan
         Write-Host "                   winget resolved by absolute path." -ForegroundColor Cyan
